@@ -11,13 +11,10 @@ class master_service(rpyc.Service):
     def on_disconnect(self, conn):
         print('Disconnected with the master server.')
         
-    ######################################
-    # 199 start here
-    ######################################
-    #
     num_chunkservers = 1
     max_chunkservers = 1
     max_chunksperfile = 1
+    
     #
     chunksize = 100*1024*1024
     chunkrobin = 0
@@ -25,37 +22,7 @@ class master_service(rpyc.Service):
     chunktable={}
     #For now only one chunk server
     chunkservers={}     
-    #-----------------------------------------
-    #initilize the master server,set some parameters
-    # def __init__(self):
-    #     #
-    #     self.num_chunkservers = 1
-    #     self.max_chunkservers = 1
-    #     self.max_chunksperfile = 1
-    #     #
-    #     self.chunksize = 100*1024*1024
-    #     self.chunkrobin = 0
-    #     self.filetable={}
-    #     self.chunktable={}
-    #     #For now only one chunk server
-    #     self.chunkservers={}
-    #     self.init_chunkserver()
-    #---------------------------------------------
-    con_chunk = rpyc.connect('localhost', port=8888)
-    chunkservers[0] = con_chunk.root
-    #------------------------------------------
-    # def init_chunkserver(self):
-    #     # for i in range(self.num_chunkservers):
-    #     #     ##这里我觉得需要连接一下这个chunkserver
-    #     #     # chunkserver = chunk_service(i)
-    #     #     # self.chunkservers[i] = chunkserver
-
-    #     #     ##这里我不知道该怎么弄了
-
-    #     #     self.chunkservers = chunk_service
-    #     con_chunk = rpyc.connect('localhost', port=8888)
-    #     self.chunkservers[0] = con_chunk.root
-    #------------------------------------------------
+    
     def exposed_get_chunkservers(self):
         return self.chunkservers
 
@@ -71,6 +38,7 @@ class master_service(rpyc.Service):
         chunkuuids = []
         for i in range(0, num_chunks):
             chunkuuid = uuid.uuid1()
+            chunkuuid = str(chunkuuid)
             chunkloc = self.chunkrobin
             self.chunktable[chunkuuid] = chunkloc
             chunkuuids.append(chunkuuid)
@@ -91,7 +59,7 @@ class master_service(rpyc.Service):
         return self.filetable[fname]
 
     def exposed_exists(self, fname):
-        return fname in self.filetable
+        return True if fname in self.filetable.keys() else False
     #delete the file and rename it for garbge collection
     def exposed_delete(self, fname): 
         chunkuuids = self.filetable[fname]
@@ -103,16 +71,18 @@ class master_service(rpyc.Service):
         # print ("deleted file: " + fname + " renamed to " + \
         #      deleted_filename + " ready for gc")
 
-    # def dump_metadata(self):
-    #     print ("Filetable:")
-    #     for filename, chunkuuids in self.filetable.items():
-    #         print (filename, "with", len(chunkuuids),"chunks")
-    #     print ("Chunkservers: ", len(self.chunkservers))
-    #     print ("Chunkserver Data:")
-    #     for chunkuuid, chunkloc in sorted(self.chunktable.iteritems(), key=operator.itemgetter(1)):
-    #         chunk = self.chunkservers[chunkloc].read(chunkuuid)
-    #         print (chunkloc, chunkuuid, chunk)
-
+    def exposed_dump_metadata(self):
+        print ("Filetable:")
+        for filename, chunkuuids in self.filetable.items():
+            print (filename, "with", len(chunkuuids),"chunks")
+        print ("Chunkservers: ", len(self.chunkservers))
+        # print ("Chunkserver Data:")
+        # for chunkuuid, chunkloc in sorted(self.chunktable.iteritems(), key=operator.itemgetter(1)):
+        #     chunk = self.chunkservers[chunkloc].read(chunkuuid)
+        #     print (chunkloc, chunkuuid, chunk)
+    def exposed_filelist(self):
+        return self.filetable
+        
 if __name__ == "__main__":
     t = ThreadedServer(master_service, port=18861)
     t.start()

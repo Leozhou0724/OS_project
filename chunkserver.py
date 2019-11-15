@@ -5,8 +5,6 @@ path = './files/chunk/'
 
 
 class chunk_service(rpyc.Service):
-    
-
     file_table = {}
 
     def on_connect(self, conn):
@@ -15,26 +13,17 @@ class chunk_service(rpyc.Service):
     def on_disconnect(self, conn):
         print('Disconnected with the chunk server.')
 
-    ############################################################
-    #199 start here
-    ############################################################
-
     #--------------------
     #initialize 
     #--------------------
     chunkloc = 0
     chunktable = {}
-    local_filesystem_root = "/tmp/gfs/chunks/" + repr(chunkloc)
-    if not os.access(local_filesystem_root, os.W_OK):
+    # local_filesystem_root = "/gfs/chunks/" + repr(chunkloc)
+    local_filesystem_root = os.path.expanduser("~")
+    local_filesystem_root += "./gfs_root/chunks/"+repr(chunkloc)
+    if  not os.access(local_filesystem_root, os.W_OK):
         os.makedirs(local_filesystem_root)
-
-    # def __init__(self, chunkloc):
-    #     self.chunkloc = chunkloc
-    #     self.chunktable = {}
-
-    #     self.local_filesystem_root = "/tmp/gfs/chunks/" + repr(chunkloc)
-    #     if not os.access(self.local_filesystem_root, os.W_OK):
-    #         os.makedirs(self.local_filesystem_root)
+        print("create chunk root")
 
     def exposed_write(self, chunkuuid, chunk):
         local_filename = self.chunk_filename(chunkuuid)
@@ -47,11 +36,10 @@ class chunk_service(rpyc.Service):
         local_filename = self.chunk_filename(chunkuuid)
         with open(local_filename, "rb") as f:
             data = f.read()
-        return data
+            return data
 
     def chunk_filename(self, chunkuuid):
-        local_filename = self.local_filesystem_root + "/" \
-            + str(chunkuuid) + '.gfs'
+        local_filename = self.local_filesystem_root + "/" + str(chunkuuid) + ".gfs"
         return local_filename
 
 
